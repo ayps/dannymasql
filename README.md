@@ -1,2 +1,1 @@
 # dannymasql
-dannymasql challenge
