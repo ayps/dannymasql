@@ -1,4 +1,4 @@
-What is the total amount each customer spent at the restaurant?
+**What is the total amount each customer spent at the restaurant?**
 
 ```sql
 select customer_id, sum(price) as total_amount_spent
