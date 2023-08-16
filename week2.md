@@ -88,5 +88,39 @@ where distance_cleaned is not null
 group by customer_orders_temporary.customer_id
 order by customer_orders_temporary.customer_id;
 ```
-
-
+**What was the total volume of pizzas ordered for each hour of the day?**
+```sql
+select extract(hour from order_time) as hourly_data, count(pizza_id)
+from customer_orders_temporary
+group by hourly_data
+order by hourly_data;
+```
+**What was the volume of orders for each day of the week?**
+```sql
+select to_char(order_time,'day')as day_of_week,
+	   count(pizza_id) as pizza_count
+from customer_orders_temporary
+group by day_of_week
+order by day_of_week;
+```
+**What was the volume of orders for each day of the week?**
+```sql
+with days as (
+	select to_char(order_time,'day')as day_of_week,
+	   count(pizza_id) as pizza_count
+from customer_orders_temporary
+group by day_of_week
+)
+SELECT * from days
+order by
+    CASE
+        WHEN day_of_week like 'sun%' THEN 1
+        WHEN day_of_week like 'mon%' THEN 2
+        WHEN day_of_week like 'tues%' THEN 3
+        WHEN day_of_week like 'wedne%' THEN 4
+        WHEN day_of_week like 'thurs%' THEN 5
+        WHEN day_of_week like 'frid%' THEN 6
+        WHEN day_of_week like 'satur%' THEN 7
+        ELSE 0
+    END desc;
+```
