@@ -145,3 +145,9 @@ order by
     END desc;
 ```
 ***Section B***
+**How many runners signed up for each 1 week period? (i.e. week starts 2021-01-01)**
+```sql
+select extract(week from registration_date+3) as week_of_the_year,count(runner_id) from pizza_runner.runners
+group by week_of_the_year
+order by week_of_the_year;
+```
