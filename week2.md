@@ -20,7 +20,7 @@ create temporary table customer_orders_temporary as (
 ```sql
 select count(order_id) as total_pizzas_orders from customer_orders_temporary;
 ```
-***How many unique customer orders were made?**
+**How many unique customer orders were made?**
 ```sql
 select customer_id, count(distinct(order_id)) as unique_customer_orders 
 from customer_orders_temporary
