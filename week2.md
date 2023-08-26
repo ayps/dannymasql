@@ -16,6 +16,26 @@ create temporary table customer_orders_temporary as (
 	from pizza_runner.customer_orders
 );
 ```
+**cleaning runners orders table**
+```sql
+create temporary table runner_orders_temporary as (
+	select order_id,
+		   runner_id,
+		   case when pickup_time='' or pickup_time='null' then null
+		   		else pickup_time
+		   end as pickup_time_cleaned,
+		   case when distance='' or distance='null' then null
+				else regexp_replace(distance,'[a-z]+','')
+		   end as  distance_cleaned,
+		   case when duration='' or distance='null' then null
+				else regexp_replace(duration,'[a-z]+','')
+		   end as duration_cleaned,
+		   case when cancellation ='null' or cancellation='' then null
+				else cancellation
+		   end as cancellation_cleaned
+	from pizza_runner.runner_orders
+);
+```
 **How many pizzas were ordered?**
 ```sql
 select count(order_id) as total_pizzas_orders from customer_orders_temporary;
