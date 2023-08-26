@@ -153,3 +153,54 @@ select extract(week from registration_date+3) as week_of_the_year,count(runner_i
 group by week_of_the_year
 order by week_of_the_year;
 ```
+**altering data type of pickup_time_cleaned to timestamp**
+```sql
+alter table runner_orders_temporary
+alter column pickup_time_cleaned type timestamp using pickup_time_cleaned::timestamp without time zone;
+```
+**What was the average time in minutes it took for each runner to arrive at the Pizza Runner HQ to pickup the order?**
+```sql
+select runner_orders_temporary.runner_id,date_trunc ('minute', (sum(pickup_time_cleaned-order_time)/count(runner_id))+interval '30 second') as avg_time
+from runner_orders_temporary inner join customer_orders_temporary
+on runner_orders_temporary.order_id=customer_orders_temporary.order_id
+where cancellation_cleaned is null
+group by runner_orders_temporary.runner_id;
+```
+**Is there any relationship between the number of pizzas and how long the order takes to prepare?**
+```sql
+with table_1 as (
+	
+select customer_orders_temporary.order_id,
+	   date_trunc ('seconds', (sum(pickup_time_cleaned-order_time)/count(customer_orders_temporary.order_id))) as avg_time,
+	   count(customer_orders_temporary.order_id) as number_of_pizzas_ordered
+from runner_orders_temporary inner join customer_orders_temporary
+on runner_orders_temporary.order_id=customer_orders_temporary.order_id
+where cancellation_cleaned is null
+group by runner_orders_temporary.runner_id, customer_orders_temporary.order_id
+)
+select number_of_pizzas_ordered, avg(avg_time)
+from table_1
+group by number_of_pizzas_ordered 
+order by number_of_pizzas_ordered desc;
+```
+**altering data type in runner_orders_temporary table**
+```sql
+alter table runner_orders_temporary
+alter column distance_cleaned type float using distance_cleaned::float,
+alter column duration_cleaned type float using duration_cleaned::float;
+```
+**What was the average distance travelled for each customer?**
+```sql
+select customer_id, cast(avg(distance_cleaned) as numeric(10,2))as average_distance_travelled
+from runner_orders_temporary inner join customer_orders_temporary
+on runner_orders_temporary.order_id=customer_orders_temporary.order_id
+group by customer_id
+order by average_distance_travelled;
+```
+**What was the difference between the longest and shortest delivery times for all orders?**
+```sql
+select cast(max(duration_cleaned)-min(duration_cleaned) as integer) as delivery_time_difference from runner_orders_temporary;
+```
+
+
+
