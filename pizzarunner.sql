@@ -291,12 +291,6 @@ FROM rot INNER JOIN cot
 ON rot.order_id=cot.order_id
 WHERE rot.cancellation IS NULL
 
-"customer_id"	"avg_distance_travelled"
-101	20
-102	18.4
-103	23.4
-104	10
-105	25
 
 "order_id"	"customer_id"	"runner_id"	"pickup_time"	"order_time"	"distance"	"duration"	"cancellation"
 1	101	1	"2020-01-01 18:15:34"	"2020-01-01 18:05:02"	20	32	
@@ -348,6 +342,21 @@ OUTPUT
 2	7	25	60.00
 2	8	23.4	93.60
 3	5	10	40.00
+
+--What is the successful delivery percentage for each runner?
+SELECT 
+	runner_id,
+	ROUND(COUNT(distance)::numeric/COUNT(runner_id)::numeric,2)
+FROM rot
+GROUP BY runner_id
+ORDER BY runner_id;
+
+OUTPUT
+"runner_id"	"round"
+1	1.00
+2	0.75
+3	0.50
+
 
 --C. Ingredient Optimisation
 --pizza order reciepe temporary table por
