@@ -1,0 +1,75 @@
+CTE - common table expression
+creates temporary result sets that can be referenced with SELECT, INSERT, UPDATE OR DELETE
+useful for breaking down complex queries into more manageable and readable parts
+Syntax
+WITH cte_name AS (
+	SELECT column_1,column_2,...
+	FROM your_table
+	WHERE some_condition
+)
+
+DENSE_RANK() - to calculate dense rank of rows within a result set based on the values in one or more columns, Dense ranking assigns the same rank to the rows with same values and leaves no gaps in ranking
+Syntax
+DENSE_RANK() OVER (
+	PARTITION BY partition_expression
+	ORDER BY sort_expression
+)
+
+RANK() - to calculate the rank of rows within a result set based on the values in one or more columns. The RANK() FUNCTION assigns a unique rank to each row and handles tied values by assigning the same rank to rows with same values, but the next rank will have a gap if there are tied ranks.
+
+CASE - statement is used to perform conditional logic within a sql query, you can use CASE to evaluate conditions and return different values or actions based on those conditions.
+Syntax
+CASE
+	WHEN condition1 THEN result1
+	WHEN condition2 THEN result2
+	ELSE else_result
+END
+
+CAST - function to explicitly convert one data type into another data type
+Syntax
+CAST (expression AS target_data_type)
+
+DATE_PART - function used to extract a specific component (such as year, month, day, hour, minute, seconds) from a date or timestamp
+Syntax
+DATE_PART(field,source)
+
+TO_CHAR - function is used to convert date, time, and timestamp values into formatted strings
+Syntax
+TO_CHAR(source,format)
+
+EXTRACT - function is used to extract specific components such as year, month, day, hour, minute, seconds,etc from date and timestamp values
+Syntax
+EXTRACT (field FROM source)
+
+DATE_TRUNC - function is used to truncate a date or timestamp value to a specific level of precision. It allows you to round down a date or timestamp to a specified unit, such as year, quater, month, week, day, hour, etc
+Syntax
+DATE_TRUNC(unit, source)
+
+ROUND - function to round a numeric or decimal value to a specified number of decimal places.
+Syntax
+ROUND(value, decimal_places)
+
+STRING_TO_ARRAY - function used to splite a string into an array of substrings based on a specified delimiter
+Syntax
+STRING_TO_ARRAY(column_name or input_string, delimiter)
+
+UNNEST - function is used to expand an array into a set of rows. It can be particularly useful when you have an array column and you want to view its elements as separate rows
+Syntax
+SELECT UNNEST(array_column) AS column_name
+FROM your_table;
+
+STRING_AGG - function is used to concatenate values from multiple rows into a single string, with an optional separator.
+Syntax
+STRING_AGG(expression, separator)
+
+CONCAT_WS - function is used to concatenate multiple strings or values with a specified delimiter
+Syntax
+CONCAT_WS(separator, column_name or string1,string2,...)
+
+CONCAT - function is used to concatenate two or more strings into a single string
+Syntax
+CONCAT(string1,string,... or column_name)
+
+
+
+
