@@ -179,30 +179,15 @@ OUTPUT
 WITH days AS (
 	SELECT 
 		order_id,
-		TO_CHAR(order_time,'Day') AS day_of_the_week,
+		TO_CHAR(order_time, 'D') AS day_of_the_week,
+		TO_CHAR(order_time,'Day') AS days,
 		pizza_id
 	FROM cot
-),
-formatting AS (
-	SELECT
-		order_id,
-		day_of_the_week,
-		CASE
-			WHEN day_of_the_week LIKE 'Sun%' THEN 1
-			WHEN day_of_the_week LIKE 'Mon%' THEN 2
-			WHEN day_of_the_week LIKE 'Tue%' THEN 3
-			WHEN day_of_the_week LIKE 'Wed%' THEN 4
-			WHEN day_of_the_week LIKE 'Thu%' THEN 5
-			WHEN day_of_the_week LIKE 'Fri%' THEN 6
-			ELSE 7
-		END AS ranks,
-		pizza_id
-	FROM days
 )
-SELECT day_of_the_week, count(pizza_id)
-FROM formatting
-GROUP BY day_of_the_week,ranks
-ORDER BY ranks;
+SELECT days, COUNT(pizza_id)
+FROM days
+GROUP BY days.days,days.day_of_the_week
+ORDER BY day_of_the_week;
 
 OUTPUT
 "day_of_the_week"	"count"
