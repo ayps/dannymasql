@@ -1,47 +1,102 @@
+--schema sql
+CREATE SCHEMA dannys_diner;
+SET search_path = dannys_diner;
+
+CREATE TABLE sales (
+  "customer_id" VARCHAR(1),
+  "order_date" DATE,
+  "product_id" INTEGER
+);
+
+INSERT INTO sales
+  ("customer_id", "order_date", "product_id")
+VALUES
+  ('A', '2021-01-01', '1'),
+  ('A', '2021-01-01', '2'),
+  ('A', '2021-01-07', '2'),
+  ('A', '2021-01-10', '3'),
+  ('A', '2021-01-11', '3'),
+  ('A', '2021-01-11', '3'),
+  ('B', '2021-01-01', '2'),
+  ('B', '2021-01-02', '2'),
+  ('B', '2021-01-04', '1'),
+  ('B', '2021-01-11', '1'),
+  ('B', '2021-01-16', '3'),
+  ('B', '2021-02-01', '3'),
+  ('C', '2021-01-01', '3'),
+  ('C', '2021-01-01', '3'),
+  ('C', '2021-01-07', '3');
+ 
+
+CREATE TABLE menu (
+  "product_id" INTEGER,
+  "product_name" VARCHAR(5),
+  "price" INTEGER
+);
+
+INSERT INTO menu
+  ("product_id", "product_name", "price")
+VALUES
+  ('1', 'sushi', '10'),
+  ('2', 'curry', '15'),
+  ('3', 'ramen', '12');
+  
+
+CREATE TABLE members (
+  "customer_id" VARCHAR(1),
+  "join_date" DATE
+);
+
+INSERT INTO members
+  ("customer_id", "join_date")
+VALUES
+  ('A', '2021-01-07'),
+  ('B', '2021-01-09');
 
 --What is the total amount each customer spent at the restaurant?
-SELECT customer_id AS customers, sum(price) as total_amount_spent
-FROM dannys_diner.sales INNER JOIN dannys_diner.menu
-on sales.product_id=menu.product_id
-GROUP BY customer_id
-ORDER BY customer_id;
+SELECT
+	s.customer_id,
+	SUM(m.price) AS tot_spent
+FROM sales s INNER JOIN menu m
+ON s.product_id=m.product_id
+GROUP BY s.customer_id;
 
 OUTPUT
-
-"customers"	"total_amount_spent"
-"A"	76
+"customer_id"	"tot_spent"
 "B"	74
 "C"	36
+"A"	76
 
 --How many days has each customer visited the restaurant?
-SELECT customer_id as customers, COUNT(DISTINCT(order_date))as frequency_of_visits
-FROM dannys_diner.sales
-GROUP BY customer_id
-ORDER BY customer_id;
+SELECT
+	customer_id,
+	COUNT(DISTINCT order_date) AS freq_vis
+FROM sales
+GROUP BY customer_id;
 
 OUTPUT
-
-"customers"	"frequency_of_visits"
+"customer_id"	"freq_vis"
 "A"	4
 "B"	6
 "C"	2
 
 --What was the first item from the menu purchased by each customer?
 WITH ranks AS (
-	SELECT 
-		customer_id as customers,
-		product_name as first_item_purchased,
-		DENSE_RANK() OVER(PARTITION BY customer_id ORDER BY order_date) as ranking
-	FROM dannys_diner.sales INNER JOIN dannys_diner.menu
-	ON sales.product_id = menu.product_id
+	SELECT
+		s.customer_id,
+		m.product_name,
+		DENSE_RANK() OVER(PARTITION BY s.customer_id ORDER BY s.order_date) AS ranks
+	FROM sales s INNER JOIN menu m
+	ON s.product_id=m.product_id
 )
-SELECT customers, first_item_purchased
+SELECT
+	customer_id,
+	product_name
 FROM ranks
-WHERE ranking = 1;
+WHERE ranks=1;
 
 OUTPUT
-
-"customers"	"first_item_purchased"
+"customer_id"	"product_name"
 "A"	"curry"
 "A"	"sushi"
 "B"	"curry"
@@ -49,38 +104,37 @@ OUTPUT
 "C"	"ramen"
 
 --What is the most purchased item on the menu and how many times was it purchased by all customers?
-SELECT product_name as most_purchased_item, COUNT(sales.product_id) AS frequency_purchased
-FROM dannys_diner.sales INNER JOIN dannys_diner.menu
-ON sales.product_id=menu.product_id
-GROUP BY sales.product_id, product_name
-ORDER BY frequency_purchased DESC
+SELECT 
+	m.product_name,
+	COUNT(s.product_id) AS most_pur
+FROM sales s INNER JOIN menu m
+ON s.product_id=m.product_id
+GROUP BY m.product_name
+ORDER BY most_pur DESC
 LIMIT 1;
 
 OUTPUT
-
-"most_purchased_item"	"frequency_purchased"
+"product_name"	"most_pur"
 "ramen"	8
 
 --Which item was the most popular for each customer?
-WITH popular AS (
-	SELECT 
-		customer_id AS customers,
-		product_id,
-		DENSE_RANK() OVER(PARTITION BY customer_id ORDER BY COUNT(product_id) DESC) AS most_popular
-	FROM dannys_diner.sales
-	GROUP BY customer_id,product_id
+WITH pop AS (
+	SELECT
+		s.customer_id,
+		m.product_name AS pop_item,
+		DENSE_RANK() OVER(PARTITION BY s.customer_id ORDER BY COUNT(s.product_id) DESC) AS pop
+	FROM sales s INNER JOIN menu m
+	ON s.product_id=m.product_id
+	GROUP BY s.customer_id,pop_item
 )
-SELECT 
-	customers, 
-	product_name as most_popular_item
-FROM popular INNER JOIN dannys_diner.menu
-ON popular.product_id = menu.product_id
-WHERE most_popular=1
-ORDER BY customers;
+SELECT
+	customer_id,
+	pop_item
+FROM pop
+WHERE pop=1;
 
 OUTPUT
-
-"customers"	"most_popular_item"
+"customer_id"	"pop_item"
 "A"	"ramen"
 "B"	"sushi"
 "B"	"curry"
@@ -88,126 +142,103 @@ OUTPUT
 "C"	"ramen"
 
 --Which item was purchased first by the customer after they became a member?
-WITH join_date AS(
-	SELECT 
-		sales.customer_id AS customers,
-		product_id,
-		order_date,
-		join_date,
-		RANK() OVER(PARTITION BY sales.customer_id ORDER BY order_date) as rankss
-	FROM dannys_diner.sales INNER JOIN dannys_diner.members
-	ON sales.customer_id=members.customer_id
-	WHERE order_date>=join_date
+WITH mem AS (
+	SELECT
+		s.customer_id,
+		m.product_name AS fir_pur,
+		DENSE_RANK() OVER(PARTITION BY s.customer_id ORDER BY s.order_date) AS ranks
+	FROM sales s INNER JOIN menu m
+	ON s.product_id=m.product_id
+	INNER JOIN members me
+	ON s.customer_id=me.customer_id
+	WHERE s.order_date>me.join_date
 )
-SELECT 
-	customers, 
-	product_name as first_item_purchased
-FROM join_date INNER JOIN dannys_diner.menu
-on join_date.product_id=menu.product_id
-WHERE rankss=1
-ORDER BY customers;
+SELECT
+	customer_id,
+	fir_pur
+FROM mem
+WHERE ranks=1;
 
 OUTPUT
-
-"customers"	"first_item_purchased"
-"A"	"curry"
+"customer_id"	"fir_pur"
+"A"	"ramen"
 "B"	"sushi"
 
 --Which item was purchased just before the customer became a member?
-WITH join_date AS(
-	SELECT 
-		sales.customer_id AS customers,
-		product_id,
-		order_date,
-		join_date,
-		RANK() OVER(PARTITION BY sales.customer_id ORDER BY order_date DESC) as rankss
-	FROM dannys_diner.sales INNER JOIN dannys_diner.members
-	ON sales.customer_id=members.customer_id
-	WHERE order_date<join_date
+WITH mem AS (
+	SELECT
+		s.customer_id,
+		m.product_name AS las_pur,
+		DENSE_RANK() OVER(PARTITION BY s.customer_id ORDER BY s.order_date DESC) AS ranks
+	FROM sales s INNER JOIN menu m
+	ON s.product_id=m.product_id
+	INNER JOIN members me
+	ON s.customer_id=me.customer_id
+	WHERE s.order_date<me.join_date
 )
-SELECT 
-	customers, 
-	product_name as first_item_purchased
-FROM join_date INNER JOIN dannys_diner.menu
-on join_date.product_id=menu.product_id
-WHERE rankss=1
-ORDER BY customers;
+SELECT
+	customer_id,
+	las_pur
+FROM mem
+WHERE ranks=1;
 
 OUTPUT
-
-"customers"	"first_item_purchased"
+"customer_id"	"las_pur"
 "A"	"sushi"
 "A"	"curry"
 "B"	"sushi"
 
 --What is the total items and amount spent for each member before they became a member?
-SELECT 
-	sales.customer_id AS customers,
-	SUM(price) AS total_spent
-FROM dannys_diner.sales INNER JOIN dannys_diner.menu
-ON sales.product_id=menu.product_id
-INNER JOIN dannys_diner.members
-on sales.customer_id=members.customer_id
-WHERE order_date<join_date
-GROUP BY customers
-ORDER BY customers;
+SELECT
+	s.customer_id,
+	COUNT(s.product_id) AS tot_items,
+	SUM(m.price) AS tot_spent
+FROM sales s INNER JOIN menu m
+ON s.product_id=m.product_id
+INNER JOIN members me
+ON s.customer_id=me.customer_id
+WHERE s.order_date<me.join_date
+GROUP BY s.customer_id;
 
 OUTPUT
-
-"customers"	"total_spent"
-"A"	25
-"B"	40
+"customer_id"	"tot_items"	"tot_spent"
+"B"	3	40
+"A"	2	25
 
 --If each $1 spent equates to 10 points and sushi has a 2x points multiplier - how many points would each customer have?
-WITH points AS (
-	SELECT 
-		customer_id as customers,
-		product_id,
-		CASE WHEN product_id=1 THEN 20
-		ELSE 10
-		END AS points
-	FROM dannys_diner.sales
-)
-SELECT 
-	customers, 
-	SUM(points*price) AS points_collected
-FROM points INNER JOIN dannys_diner.menu
-ON points.product_id=menu.product_id
-GROUP BY customers
-ORDER BY customers;
+SELECT
+	s.customer_id,
+	SUM(CASE WHEN m.product_name LIKE 'sus%'
+	   		 THEN m.price*20
+	   		 ELSE m.price*10
+	   	END) AS points
+FROM sales s INNER JOIN menu m
+ON s.product_id=m.product_id
+GROUP BY s.customer_id;
 
 OUTPUT
-
-"customers"	"points_collected"
-"A"	860
+"customer_id"	"points"
 "B"	940
 "C"	360
+"A"	860
 
 --In the first week after a customer joins the program (including their join date) they earn 2x points on all items, not just sushi - how many points do customer A and B have at the end of January?
-WITH points AS(
-	SELECT
-		sales.customer_id AS customers,
-		product_id,
-		order_date,
-		join_date,
-		CASE WHEN product_id=1 THEN 20
-			 WHEN order_date - join_date+6>=0 THEN 20 
-		ELSE 10 
-		END AS points
-	FROM dannys_diner.sales INNER JOIN dannys_diner.members
-	ON sales.customer_id=members.customer_id
-)
-SELECT 
-	customers, 
-	SUM(points*price) AS points_collected
-FROM points INNER JOIN dannys_diner.menu
-ON points.product_id=menu.product_id
-WHERE order_date<='2021-01-31'
-GROUP BY customers
-ORDER BY customers;
+SELECT
+	s.customer_id,
+	SUM(CASE WHEN m.product_name LIKE 'sus%'
+			 THEN m.price*20
+			 WHEN s.order_date>me.join_date+6
+			 THEN m.price*20
+			 ELSE m.price*10
+		END) AS points
+FROM sales s INNER JOIN menu m
+ON s.product_id=m.product_id
+INNER JOIN members me
+ON s.customer_id=me.customer_id
+WHERE s.order_date<='2021-01-31'
+GROUP BY s.customer_id;
 
 OUTPUT
-
-"customers"	"points_collected"
-"A"	1520
+"customer_id"	"points"
+"A"	860
 "B"	940
