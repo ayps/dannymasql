@@ -153,6 +153,139 @@ OUTPUT
 3	"2020-02"	-821
 3	"2020-03"	-1222
 
+--What is the percentage of customers who increase their closing balance by more than 5%?
+WITH tt1 AS (
+	SELECT
+		customer_id,
+		TO_CHAR(txn_date,'YYYY-MM') AS months,
+		SUM(CASE WHEN txn_type LIKE 'dep%' THEN txn_amount ELSE -txn_amount END) AS clo_bal
+	FROM customer_transactions
+	GROUP BY customer_id, months
+),
+tt2 AS (
+	SELECT
+		customer_id,
+		months,
+		SUM(clo_bal) OVER(PARTITION BY customer_id ORDER BY months) AS clo_bal
+	FROM tt1),
+tt3 AS (
+	SELECT
+		customer_id,
+		months,
+		clo_bal,
+		LAG(clo_bal) OVER(PARTITION BY customer_id ORDER BY months) AS prev_bal
+	FROM tt2),
+tt4 AS (
+	SELECT
+		customer_id,
+		months,
+		clo_bal,
+		100*(clo_bal-prev_bal)/NULLIF(CASE WHEN prev_bal>0 THEN prev_bal ELSE -prev_bal END,0) AS percentage_change
+	FROM tt3)
+SELECT
+	100*COUNT(DISTINCT customer_id)/(SELECT COUNT(DISTINCT customer_id) FROM customer_transactions)::FLOAT AS perc_cust
+FROM tt4
+WHERE percentage_change>5;
+
+OUTPUT
+"perc_cust"
+67
+
+--C. Data Allocation Challenge
+
+--running customer balance column that includes the impact each transaction
+WITH tt1 AS (
+SELECT 
+	customer_id,
+	txn_date,
+	SUM(CASE WHEN txn_type LIKE 'dep%' THEN txn_amount ELSE -txn_amount END) OVER(PARTITION BY customer_id ORDER BY txn_date) AS clo_bal
+FROM customer_transactions
+)
+SELECT * FROM tt1;
+
+OUTPUT
+"customer_id"	"txn_date"	"clo_bal"
+1	"2020-01-02"	312
+1	"2020-03-05"	-300
+1	"2020-03-17"	24
+1	"2020-03-19"	-640
+2	"2020-01-03"	549
+2	"2020-03-24"	610
+3	"2020-01-27"	144
+3	"2020-02-22"	-821
+3	"2020-03-05"	-1034
+3	"2020-03-19"	-1222
+3	"2020-04-12"	-729
+
+--customer balance at the end of each month
+WITH tt1 AS (
+SELECT
+	customer_id,
+	TO_CHAR(txn_date,'YYYY-MM') AS months,
+	SUM(CASE WHEN txn_type LIKE 'dep%' THEN txn_amount
+		 ELSE -txn_amount 
+	END) AS txn_amount
+FROM customer_transactions
+GROUP BY customer_id, months
+),
+tt2 AS (
+SELECT
+	customer_id,
+	months,
+	txn_amount,
+	LAG(txn_amount,1) OVER(PARTITION BY customer_id ORDER BY months) AS pre_amount
+FROM tt1)
+SELECT
+	customer_id,
+	months,
+	SUM(txn_amount+COALESCE(pre_amount,0)) AS col_bal
+FROM tt2
+GROUP BY customer_id,months;
+
+OUTPUT
+"customer_id"	"months"	"col_bal"
+1	"2020-01"	312
+1	"2020-03"	-640
+2	"2020-01"	549
+2	"2020-03"	610
+3	"2020-01"	144
+3	"2020-02"	-821
+3	"2020-03"	-1366
+3	"2020-04"	92
+4	"2020-01"	848
+4	"2020-03"	655
+
+--minimum, average and maximum values of the running balance for each customer
+WITH tt1 AS (
+SELECT
+	customer_id,
+	TO_CHAR(txn_date,'yyyy-mm') AS txn_date,
+	SUM(CASE WHEN txn_type LIKE 'dep%' THEN txn_amount
+	   		 ELSE -txn_amount
+	    END) OVER(PARTITION BY customer_id ORDER BY txn_date) AS running_tot
+FROM customer_transactions
+)
+SELECT
+	customer_id,
+	MIN(running_tot) AS minium_bal,
+	ROUND(AVG(running_tot),2) AS avg_bal,
+	MAX(running_tot) AS max_bal
+FROM tt1
+GROUP BY customer_id;
+
+OUTPUT
+"customer_id"	"minium_bal"	"avg_bal"	"max_bal"
+1	-640	-151.00	312
+2	549	579.50	610
+3	-1222	-732.40	144
+4	458	653.67	848
+5	-2413	-135.45	1780
+6	-552	624.00	2197
+7	887	2268.69	3539
+8	-1029	173.70	1363
+9	-91	1021.70	2030
+10	-5090	-2229.83	556
+
 
 
 
