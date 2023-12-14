@@ -88,25 +88,24 @@ OUTPUT
 --What is the total sales for each region for each month?
 SELECT
 	region,
-	TO_CHAR(week_date,'Month') AS months,
-	EXTRACT(Month FROM week_date) AS month_no,
-	SUM(sales) AS sum_of_sales
+	TO_CHAR(TO_DATE(month_number::TEXT,'MM'),'Month') AS months,
+	SUM(sales)
 FROM clean_weekly_sales
-GROUP BY region,months,month_no
-ORDER BY region,month_no;
+GROUP BY region,months,month_number
+ORDER BY region,month_number;
 
 OUTPUT:
-"region"	"months"	"month_no"	"sum_of_sales"
-"AFRICA"	"March    "	3	567767480
-"AFRICA"	"April    "	4	1911783504
-"AFRICA"	"May      "	5	1647244738
-"AFRICA"	"June     "	6	1767559760
-"AFRICA"	"July     "	7	1960219710
-"AFRICA"	"August   "	8	1809596890
-"AFRICA"	"September"	9	276320987
-"ASIA"	"March    "	3	529770793
-"ASIA"	"April    "	4	1804628707
-"ASIA"	"May      "	5	1526285399
+"region"	"months"	"sum"
+"AFRICA"	"March    "	567767480
+"AFRICA"	"April    "	1911783504
+"AFRICA"	"May      "	1647244738
+"AFRICA"	"June     "	1767559760
+"AFRICA"	"July     "	1960219710
+"AFRICA"	"August   "	1809596890
+"AFRICA"	"September"	276320987
+"ASIA"	"March    "	529770793
+"ASIA"	"April    "	1804628707
+"ASIA"	"May      "	1526285399
 
 --What is the total count of transactions for each platform
 SELECT
@@ -186,12 +185,14 @@ GROUP BY age_band,demographic
 ORDER BY contribution DESC;
 
 OUTPUT
-"age_band"	"demographic"	"tot_sales"
-"Unknown"	"Unknown"	16067285533
-"Retires"	"Familes"	6634686916
-"Retires"	"Couples"	6370580014
-"Familes"	"Familes"	4354091554
-"Young Adults"	"Couples"	2602922797
+"age_band"	"demographic"	"tot_sales"	"contribution"
+"Unknown"	"Unknown"	16067285533	40.52
+"Retires"	"Familes"	6634686916	16.73
+"Retires"	"Couples"	6370580014	16.07
+"Familes"	"Familes"	4354091554	10.98
+"Young Adults"	"Couples"	2602922797	6.56
+"Familes"	"Couples"	1854160330	4.68
+"Young Adults"	"Familes"	1770889293	4.47
 
 --Can we use the avg_transaction column to find the average transaction size for each year for Retail vs Shopify? If not - how would you calculate it instead?
 SELECT
@@ -203,6 +204,14 @@ FROM clean_weekly_sales
 GROUP BY platform,calendar_year
 ORDER BY calendar_year;
 
+OUTPUT
+"platform"	"calendar_year"	"avg_transaction"	"avg_grp"
+"Shopify"	2018	188	192
+"Retail"	2018	43	36
+"Shopify"	2019	178	183
+"Retail"	2019	42	36
+"Retail"	2020	41	36
+"Shopify"	2020	175	179
 
 --What is the total sales for the 4 weeks before and after 2020-06-15? What is the growth or reduction rate in actual values and percentage of sales?
 WITH tt1 AS (
